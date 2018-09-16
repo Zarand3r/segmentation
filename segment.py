@@ -1,8 +1,10 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import cv2
+import matplotlib.pyplot as plt
 
 def separate(original_image, isPath = True, output_directory = ""):
+
+	# Read the example code down the page on https://stackoverflow.com/questions/11294859/how-to-define-the-markers-for-watershed-in-opencv
 	img = original_image
 	if (isPath):
 		img = cv2.imread(original_image)	
@@ -36,12 +38,14 @@ def separate(original_image, isPath = True, output_directory = ""):
 
 	markers = cv2.watershed(img,markers)
 	img[markers == -1] = [0,0,255]
-	cv2.imwrite(output_directory+"/segmented", img)
+	cv2.imwrite(output_directory+'/segmented' + '.jpg', img)
 
 
 
-def find_contours():
-	image = cv2.imread("test.png")
+def find_contours(original_image, isPath = True,):
+	image = original_image
+	if(isPath):
+		image = cv2.imread("test.png")
 	edged = cv2.Canny(image, 10, 250)
 	cv2.imshow("Edges", edged)
 	cv2.waitKey(0)
@@ -139,6 +143,8 @@ if __name__ == "__main__":
 	ORIGINAL = cv2.imread(INPUT)
 
 	mask = make_mask(INPUT, True, OUTPUT)
-	segment(mask, ORIGINAL, False, OUTPUT)
+	# segment(mask, ORIGINAL, False, OUTPUT)
+
+	# separate(original_image = INPUT, output_directory = OUTPUT)
 
 

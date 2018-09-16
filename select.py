@@ -98,6 +98,7 @@ def crop():
   if len(ref_point) == 2:
     crop_img = clone[ref_point[0][1]:ref_point[1][1], ref_point[0][0]:ref_point[1][0]]
     cv2.imshow("crop_img", crop_img)
+    cv2.imwrite('cropped' + '.jpg', crop_img)
     cv2.waitKey(0)
 
   # close all open windows

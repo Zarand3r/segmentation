@@ -1,8 +1,9 @@
 import cv2
 # Importing opencv library
 import numpy as np
+
 #  Importing NumPy,which is the fundamental package for scientific computing with Python
-img = cv2.imread('coins.jpg')
+img = cv2.imread('input/coins.jpg')
 # Read the image from disk
 cv2.imshow("Original image", img)  # Display image
 img_float = np.float32(img)  # Convert image from unsigned 8 bit to 32 bit float
