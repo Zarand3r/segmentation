@@ -20,6 +20,7 @@ from __future__ import print_function
 import argparse
 
 import numpy as np
+import cv2
 import tensorflow as tf
 import os
 import json
@@ -45,6 +46,7 @@ def read_tensor_from_image_file(file_name,
                                 input_std=255):
   input_name = "file_reader"
   output_name = "normalized"
+
   file_reader = tf.read_file(file_name, input_name)
   if file_name.endswith(".png"):
     image_reader = tf.image.decode_png(
@@ -55,8 +57,8 @@ def read_tensor_from_image_file(file_name,
   elif file_name.endswith(".bmp"):
     image_reader = tf.image.decode_bmp(file_reader, name="bmp_reader")
   else:
-    image_reader = tf.image.decode_jpeg(
-        file_reader, channels=3, name="jpeg_reader")
+    image_reader = tf.image.decode_jpeg(file_reader, channels=3, name="jpeg_reader")
+
   float_caster = tf.cast(image_reader, tf.float32)
   dims_expander = tf.expand_dims(float_caster, 0)
   resized = tf.image.resize_bilinear(dims_expander, [input_height, input_width])
@@ -65,6 +67,7 @@ def read_tensor_from_image_file(file_name,
   result = sess.run(normalized)
 
   return result
+
 
 
 def load_labels(label_file):
@@ -80,15 +83,13 @@ def load_labels(label_file):
 # output_layer = #name of output node, called "final_result" in models retrained with retrain.py
 # # It is called "InceptionV3/Predictions/Reshape_1" in inception model, and "MobilenetV1/Predictions/Reshape_1" in mobilenet model
 
-def identify(image, modelDir = "classifier/models", model = "inception_v3_2016_08_28"):
+def identify(image, modelDir = "classifier/models", model = "inception_v3_2016_08_28", raw = False):
   old_pwd = os.getcwd()
   os.chdir(modelDir)
   
   with open('models.json') as json_data:
     model_data = json.load(json_data)
 
-
-  file_name = image
   
   model_file = model_data[model]['model_file']
   label_file = model_data[model]['label_file']
@@ -105,12 +106,22 @@ def identify(image, modelDir = "classifier/models", model = "inception_v3_2016_0
 
   os.chdir(old_pwd)
 
-  t = read_tensor_from_image_file(
-      file_name,
-      input_height=input_height,
-      input_width=input_width,
-      input_mean=input_mean,
-      input_std=input_std)
+  if raw:
+    new_img = image
+    new_img.flatten()
+    new_img= cv2.resize(new_img,dsize=(299,299), interpolation = cv2.INTER_CUBIC)
+    img_final = np.asarray(new_img)
+    img_final=cv2.normalize(img_final.astype('float'), None, -0.5, .5, cv2.NORM_MINMAX)
+    t = np.expand_dims(img,axis=0)
+
+  else:
+    file_name = image
+    t = read_tensor_from_image_file(
+        file_name,
+        input_height=input_height,
+        input_width=input_width,
+        input_mean=input_mean,
+        input_std=input_std)
 
   input_name = "import/" + input_layer
   output_name = "import/" + output_layer
@@ -132,84 +143,23 @@ def identify(image, modelDir = "classifier/models", model = "inception_v3_2016_0
 
 
 
-
-
 if __name__ == "__main__":
 
   file_name = "grace_hopper.jpg"
-
-  model_file = "models/inception_v3_2016_08_28/inception_v3_2016_08_28_frozen.pb"
-  label_file = "models/inception_v3_2016_08_28/labels.txt"
-
-  input_mean = 0
-  input_std = 255
-  input_height = 299
-  input_width = 299
-  input_layer = "input"
-  output_layer = "InceptionV3/Predictions/Reshape_1"
-
-  # # Change to this for mobilenet
-  # model_file = "models/mobilenet_v1_1.0_224/mobilenet_v1_1.0_224_frozen.pb"
-  # label_file = "models/mobilenet_v1_1.0_224/labels.txt"
-
-  # input_mean = 0
-  # input_std = 255
-  # input_height = 224
-  # input_width = 224
-  # input_layer = "input"
-  # output_layer = "MobilenetV1/Predictions/Reshape_1"
+  model = "inception_v3_2016_08_28"
 
   parser = argparse.ArgumentParser()
   parser.add_argument("--image", help="image to be processed")
   parser.add_argument("--graph", help="graph/model to be executed")
-  parser.add_argument("--labels", help="name of file containing labels")
-  parser.add_argument("--input_height", type=int, help="input height")
-  parser.add_argument("--input_width", type=int, help="input width")
-  parser.add_argument("--input_mean", type=int, help="input mean")
-  parser.add_argument("--input_std", type=int, help="input std")
-  parser.add_argument("--input_layer", help="name of input layer")
-  parser.add_argument("--output_layer", help="name of output layer")
+
   args = parser.parse_args()
 
-  if args.graph:
-    model_file = args.graph
   if args.image:
     file_name = args.image
-  if args.labels:
-    label_file = args.labels
-  if args.input_height:
-    input_height = args.input_height
-  if args.input_width:
-    input_width = args.input_width
-  if args.input_mean:
-    input_mean = args.input_mean
-  if args.input_std:
-    input_std = args.input_std
-  if args.input_layer:
-    input_layer = args.input_layer
-  if args.output_layer:
-    output_layer = args.output_layer
+  if args.graph:
+    model = args.graph
 
-  graph = load_graph(model_file)
-  t = read_tensor_from_image_file(
-      file_name,
-      input_height=input_height,
-      input_width=input_width,
-      input_mean=input_mean,
-      input_std=input_std)
+  classification = identify(image = file_name, modelDir = "models", model = model)
+  for guess in classification:
+    print(guess)
 
-  input_name = "import/" + input_layer
-  output_name = "import/" + output_layer
-  input_operation = graph.get_operation_by_name(input_name)
-  output_operation = graph.get_operation_by_name(output_name)
-
-  with tf.Session(graph=graph) as sess:
-    results = sess.run(output_operation.outputs[0], {
-        input_operation.outputs[0]: t
-    })
-  results = np.squeeze(results)
-
-  top_k = results.argsort()[-5:][::-1]
-  labels = load_labels(label_file)
-  for i in top_k:
-    print(labels[i], results[i])
