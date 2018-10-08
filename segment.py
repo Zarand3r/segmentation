@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 def separate(original_image, isPath = True, output_directory = ""):
 
-	# Read the example code down the page on https://stackoverflow.com/questions/11294859/how-to-define-the-markers-for-watershed-in-opencv
+	# Implements watershedding
 	img = original_image
 	if (isPath):
 		img = cv2.imread(original_image)	
